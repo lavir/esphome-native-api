@@ -24,8 +24,8 @@ node examples/simple-example.js
 
 **You need to update**:
 - `DEVICE_HOST` - Your device IP or hostname
-- `API_PASSWORD` - Your API password (if set)
-- `ENCRYPTION_KEY` - Your base64 encryption key (optional, for encrypted API)
+- `ENCRYPTION_KEY` - Your base64 encryption key (recommended for secure communication)
+- `API_PASSWORD` - Your API password (deprecated, use ENCRYPTION_KEY instead)
 
 ---
 
@@ -49,8 +49,8 @@ node examples/complete-example.js
 
 **You need to update**:
 - `CONFIG.host` - Your device IP or hostname
-- `CONFIG.password` - Your API password (if set)
-- `CONFIG.encryptionKey` - Your encryption key (optional)
+- `CONFIG.encryptionKey` - Your encryption key (recommended for secure communication)
+- `CONFIG.password` - Your API password (deprecated, use encryptionKey instead)
 - `CONFIG.useDiscovery` - Set to `true` to use auto-discovery
 
 ---
@@ -118,8 +118,8 @@ node examples/deep-sleep-example.js
 
 **You need to update**:
 - `DEVICE_HOST` - Your device hostname
-- `API_PASSWORD` - Your API password (if set)
-- `ENCRYPTION_KEY` - Your encryption key (optional)
+- `ENCRYPTION_KEY` - Your encryption key (recommended for secure communication)
+- `API_PASSWORD` - Your API password (deprecated, use ENCRYPTION_KEY instead)
 
 **Features**:
 - Monitors wake/sleep cycles
@@ -176,14 +176,14 @@ const client = new ESPHomeClient({
 Your ESPHome device needs the Native API component enabled:
 
 ```yaml
-# Basic configuration
-api:
-  password: "your-password"  # Optional but recommended
-
-# With encryption (recommended for security)
+# Recommended: Use encryption for secure communication
 api:
   encryption:
     key: "YOUR_BASE64_KEY_HERE"  # Generate with: openssl rand -base64 32
+
+# Legacy (deprecated): Password-based authentication
+# api:
+#   password: "your-password"  # Not recommended, use encryption instead
 
 # For device discovery
 mdns:
@@ -205,7 +205,7 @@ deep_sleep:
 **Solutions**:
 - Check the IP address/hostname is correct
 - Verify the device is powered on and connected to WiFi
-- Check the API password is correct
+- Check the encryption key or password is correct
 - Ensure firewall allows port 6053
 
 ### No Devices Found (Discovery)
@@ -220,11 +220,13 @@ deep_sleep:
 
 ### Authentication Failed
 
-**Problem**: Wrong password error
+**Problem**: Wrong password or encryption key error
 
 **Solutions**:
-- Check the password in your ESPHome config matches
-- If no password is set in ESPHome, use empty string `''`
+- If using encryption: Verify the `encryptionKey` matches the one in your ESPHome config (`api.encryption.key`)
+- If using password (deprecated): Check the password in your ESPHome config matches
+- Generate a new encryption key: `openssl rand -base64 32`
+- If no authentication is set in ESPHome, omit both `encryptionKey` and `password`
 
 ### Device Disconnects Immediately
 

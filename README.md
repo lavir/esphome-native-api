@@ -48,7 +48,8 @@ import { ESPHomeClient } from 'esphome-native-api';
 const client = new ESPHomeClient({
   host: '192.168.1.100',
   port: 6053,
-  password: 'your-api-password'
+  encryptionKey: 'your-base64-encryption-key' // Recommended: secure encryption
+  // password: 'your-api-password' // Deprecated: use encryptionKey instead
 });
 
 // Connect to the device
@@ -96,7 +97,7 @@ import { ESPHomeClient } from 'esphome-native-api';
 
 const client = new ESPHomeClient({
   host: 'device.local',
-  password: 'api-password'
+  encryptionKey: 'your-base64-encryption-key' // Recommended
 });
 
 // Listen for specific entity types
@@ -154,7 +155,7 @@ client.subscribeLogs(3); // INFO level
 ```typescript
 const client = new ESPHomeClient({
   host: 'device.local',
-  password: 'api-password'
+  encryptionKey: 'your-base64-encryption-key' // Recommended
 });
 
 await client.connect();
@@ -174,7 +175,7 @@ for (const entity of entities) {
 ```typescript
 const client = new ESPHomeClient({
   host: 'device.local',
-  password: 'api-password',
+  encryptionKey: 'your-base64-encryption-key', // Recommended
   reconnect: true,              // Enable automatic reconnection
   reconnectInterval: 5000,      // Reconnect every 5 seconds
   pingInterval: 20000,          // Send ping every 20 seconds
@@ -239,13 +240,17 @@ The main client for connecting to ESPHome devices.
 interface ConnectionOptions {
   host: string;                 // Device hostname or IP address
   port?: number;                // Port number (default: 6053)
-  password?: string;            // API password
+  encryptionKey?: string;       // Base64 encryption key (recommended for secure communication)
+  password?: string;            // API password (deprecated, use encryptionKey instead)
   clientInfo?: string;          // Client identification string
   reconnect?: boolean;          // Enable auto-reconnection (default: true)
   reconnectInterval?: number;   // Reconnection interval in ms (default: 5000)
   pingInterval?: number;        // Ping interval in ms (default: 20000)
   pingTimeout?: number;         // Ping timeout in ms (default: 5000)
   connectTimeout?: number;      // Connection timeout in ms (default: 10000)
+  expectedServerName?: string;  // Expected server name for additional security (optional)
+  logger?: Logger;              // Custom logger function
+  timerFactory?: TimerFactory;  // Custom timer implementation
 }
 ```
 
@@ -287,7 +292,7 @@ Service discovery for finding ESPHome devices on the network.
 
 - `createClient(options: ConnectionOptions): ESPHomeClient` - Create a new client
 - `discover(duration?: number): Promise<DiscoveredDevice[]>` - Discover devices
-- `connectToFirstDevice(password?: string, duration?: number): Promise<ESPHomeClient | null>` - Connect to first discovered device
+- `connectToFirstDevice(encryptionKey?: string, duration?: number): Promise<ESPHomeClient | null>` - Connect to first discovered device
 
 ## ESPHome Configuration
 
@@ -298,12 +303,34 @@ To use this library, you need to enable the Native API component in your ESPHome
 esphome:
   name: my-device
 
+# Recommended: Use encryption for secure communication
 api:
-  password: "your-secure-password"
+  encryption:
+    key: "YOUR_BASE64_ENCRYPTION_KEY"  # Generate with: openssl rand -base64 32
+
+# Legacy (deprecated): Password-based authentication
+# api:
+#   password: "your-secure-password"  # Not recommended, use encryption instead
   
 # Optional: mDNS for device discovery
 mdns:
   disabled: false
+```
+
+**Authentication Methods:**
+
+- **Encryption Key (Recommended)**: Provides end-to-end encryption using the Noise protocol with ChaCha20-Poly1305. This is the modern, secure approach.
+- **Password (Deprecated)**: Simple password authentication without encryption. Use only for legacy devices or testing.
+
+**Generating an encryption key:**
+
+```bash
+# Generate a new encryption key
+openssl rand -base64 32
+
+# Or let ESPHome generate one for you:
+esphome run your-device.yaml
+# The key will be shown in the output
 ```
 
 ## Error Handling
