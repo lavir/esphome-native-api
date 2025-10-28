@@ -90,7 +90,7 @@ jobs:
         if: steps.compare.outputs.changes_detected == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
-          token: ${{ secrets.PR_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore: update ESPHome proto files'
           title: 'Update ESPHome Proto Files'
           body: |
