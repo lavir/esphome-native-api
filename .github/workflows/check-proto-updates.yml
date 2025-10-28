@@ -32,17 +32,13 @@ jobs:
         run: |
           echo "Comparing proto files..."
           
-          # Initialize variables
+          # Initialize variable
           CHANGES_DETECTED=false
-          DIFF_OUTPUT=""
           
           # Compare api.proto
           if ! diff -q proto/api.proto temp_proto/api.proto > /dev/null 2>&1; then
             echo "api.proto has changes"
             CHANGES_DETECTED=true
-            # Generate diff without showing temp_proto path in issue
-            diff -u proto/api.proto temp_proto/api.proto | sed 's|temp_proto/||g' > api_diff.txt || true
-            DIFF_OUTPUT="${DIFF_OUTPUT}### api.proto changes:\n\`\`\`diff\n$(cat api_diff.txt)\n\`\`\`\n\n"
           else
             echo "api.proto is up to date"
           fi
@@ -51,19 +47,12 @@ jobs:
           if ! diff -q proto/api_options.proto temp_proto/api_options.proto > /dev/null 2>&1; then
             echo "api_options.proto has changes"
             CHANGES_DETECTED=true
-            diff -u proto/api_options.proto temp_proto/api_options.proto | sed 's|temp_proto/||g' > api_options_diff.txt || true
-            DIFF_OUTPUT="${DIFF_OUTPUT}### api_options.proto changes:\n\`\`\`diff\n$(cat api_options_diff.txt)\n\`\`\`\n\n"
           else
             echo "api_options.proto is up to date"
           fi
           
-          # Save results for next step
+          # Save result for next step
           echo "changes_detected=${CHANGES_DETECTED}" >> $GITHUB_OUTPUT
-          
-          # Save diff to file for issue creation
-          if [ "${CHANGES_DETECTED}" = "true" ]; then
-            echo -e "${DIFF_OUTPUT}" > diff_summary.txt
-          fi
 
       - name: Setup Node.js
         if: steps.compare.outputs.changes_detected == 'true'
@@ -86,6 +75,18 @@ jobs:
           # Regenerate code
           npm run proto:generate
 
+      - name: Run tests
+        if: steps.compare.outputs.changes_detected == 'true'
+        run: npm test
+
+      - name: Run linter
+        if: steps.compare.outputs.changes_detected == 'true'
+        run: npm run lint
+
+      - name: Build project
+        if: steps.compare.outputs.changes_detected == 'true'
+        run: npm run build
+
       - name: Create PR if changes detected
         if: steps.compare.outputs.changes_detected == 'true'
         uses: peter-evans/create-pull-request@v6
@@ -98,19 +99,14 @@ jobs:
             
             This PR updates the proto files to match the latest version from ESPHome's `dev` branch.
             
-            ### Changes Detected
-            
-            See the diff below for specific changes to the proto files.
-            
             ### What's Been Done
             
             - Downloaded latest proto files from ESPHome
             - Regenerated TypeScript/JavaScript code
             - Updated proto definitions
+            - Ran tests, linting, and build checks
             
-            ### Testing
-            
-            Please review the changes and ensure tests pass before merging.
+            All automated checks have passed.
             
             ---
             *This PR was automatically created by the [Check Proto Updates](.github/workflows/check-proto-updates.yml) workflow.*
@@ -171,14 +167,13 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          rm -rf temp_proto api_diff.txt api_options_diff.txt diff_summary.txt
+          rm -rf temp_proto
 
       - name: Summary
         if: always()
         run: |
           if [ "${{ steps.compare.outputs.changes_detected }}" = "true" ]; then
-            echo "⚠️ Proto files are out of date! An issue has been created."
-            echo "Please run 'npm run proto:generate' to update the proto files."
+            echo "⚠️ Proto files are out of date! A pull request has been created."
           else
             echo "✅ Proto files are up to date!"
           fi
