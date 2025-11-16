@@ -41,6 +41,8 @@ export interface ClientEvents {
   fanState: (state: any) => void;
   coverState: (state: any) => void;
   lightState: (state: any) => void;
+  numberState: (state: any) => void;
+  selectState: (state: any) => void;
   entity: (entity: EntityInfo) => void;
 }
 
@@ -565,6 +567,41 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
     this.connection.sendMessage(MessageType.FanCommandRequest, data);
   }
 
+  async numberCommand(key: number, state: number): Promise<void> {
+    debug('Number command: key=%d, state=%d', key, state);
+
+    const message = {
+      key,
+      state,
+    };
+
+    const data = this.encodeMessage('NumberCommandRequest', message);
+    this.connection.sendMessage(MessageType.NumberCommandRequest, data);
+  }
+
+  async selectCommand(key: number, state: string): Promise<void> {
+    debug('Select command: key=%d, state=%s', key, state);
+
+    const message = {
+      key,
+      state,
+    };
+
+    const data = this.encodeMessage('SelectCommandRequest', message);
+    this.connection.sendMessage(MessageType.SelectCommandRequest, data);
+  }
+
+  async buttonCommand(key: number): Promise<void> {
+    debug('Button command: key=%d', key);
+
+    const message = {
+      key,
+    };
+
+    const data = this.encodeMessage('ButtonCommandRequest', message);
+    this.connection.sendMessage(MessageType.ButtonCommandRequest, data);
+  }
+
   /**
    * Handle incoming messages
    */
@@ -581,6 +618,9 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
       case MessageType.ListEntitiesTextSensorResponse:
       case MessageType.ListEntitiesFanResponse:
       case MessageType.ListEntitiesCoverResponse:
+      case MessageType.ListEntitiesNumberResponse:
+      case MessageType.ListEntitiesSelectResponse:
+      case MessageType.ListEntitiesButtonResponse:
         this.handleEntityResponse(message);
         break;
 
@@ -591,6 +631,8 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
       case MessageType.LightStateResponse:
       case MessageType.FanStateResponse:
       case MessageType.CoverStateResponse:
+      case MessageType.NumberStateResponse:
+      case MessageType.SelectStateResponse:
         this.handleStateResponse(message);
         break;
 
@@ -671,6 +713,15 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
       case MessageType.ListEntitiesCoverResponse:
         entity = this.decodeMessage('ListEntitiesCoverResponse', message.data);
         break;
+      case MessageType.ListEntitiesNumberResponse:
+        entity = this.decodeMessage('ListEntitiesNumberResponse', message.data);
+        break;
+      case MessageType.ListEntitiesSelectResponse:
+        entity = this.decodeMessage('ListEntitiesSelectResponse', message.data);
+        break;
+      case MessageType.ListEntitiesButtonResponse:
+        entity = this.decodeMessage('ListEntitiesButtonResponse', message.data);
+        break;
     }
 
     if (entity && entity.key !== undefined) {
@@ -714,6 +765,14 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
       case MessageType.LightStateResponse:
         state = this.decodeMessage('LightStateResponse', message.data);
         this.emit('lightState', state);
+        break;
+      case MessageType.NumberStateResponse:
+        state = this.decodeMessage('NumberStateResponse', message.data);
+        this.emit('numberState', state);
+        break;
+      case MessageType.SelectStateResponse:
+        state = this.decodeMessage('SelectStateResponse', message.data);
+        this.emit('selectState', state);
         break;
     }
 

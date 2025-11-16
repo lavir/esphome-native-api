@@ -168,6 +168,47 @@ describe('ESPHomeClient', () => {
       expect(onFan).toHaveBeenCalled();
       expect(onCover).toHaveBeenCalled();
     });
+
+    it('should emit generic state for number and select', async () => {
+      const onState = jest.fn();
+      client.on('state', onState);
+
+      const numberBuf = Buffer.from(
+        api.NumberStateResponse.encode(api.NumberStateResponse.create({ key: 21, state: 1.23 })).finish(),
+      );
+      const selectBuf = Buffer.from(
+        api.SelectStateResponse.encode(api.SelectStateResponse.create({ key: 22, state: 'Option A' })).finish(),
+      );
+
+      mockConnection.emit('message', { type: MessageType.NumberStateResponse, data: numberBuf });
+      mockConnection.emit('message', { type: MessageType.SelectStateResponse, data: selectBuf });
+
+      await new Promise((r) => setImmediate(r));
+
+      expect(onState).toHaveBeenCalledTimes(2);
+    });
+
+    it('should emit numberState and selectState specific events', async () => {
+      const onNumber = jest.fn();
+      const onSelect = jest.fn();
+      client.on('numberState', onNumber);
+      client.on('selectState', onSelect);
+
+      const numberBuf = Buffer.from(
+        api.NumberStateResponse.encode(api.NumberStateResponse.create({ key: 41, state: 7.5 })).finish(),
+      );
+      const selectBuf = Buffer.from(
+        api.SelectStateResponse.encode(api.SelectStateResponse.create({ key: 42, state: 'Cool' })).finish(),
+      );
+
+      mockConnection.emit('message', { type: MessageType.NumberStateResponse, data: numberBuf });
+      mockConnection.emit('message', { type: MessageType.SelectStateResponse, data: selectBuf });
+
+      await new Promise((r) => setImmediate(r));
+
+      expect(onNumber).toHaveBeenCalled();
+      expect(onSelect).toHaveBeenCalled();
+    });
   });
 
   describe('listEntities integration', () => {
@@ -199,6 +240,38 @@ describe('ESPHomeClient', () => {
       expect(entities.length).toBeGreaterThanOrEqual(2);
       expect(entities.find((e: any) => e.key === 21)).toBeDefined();
       expect(entities.find((e: any) => e.key === 22)).toBeDefined();
+    });
+
+    it('should handle number, select, and button entities', async () => {
+      const promise = client.listEntities();
+
+      const num = Buffer.from(
+        api.ListEntitiesNumberResponse.encode(
+          api.ListEntitiesNumberResponse.create({ key: 31, name: 'Target Temp', objectId: 'target_temp' }),
+        ).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.ListEntitiesNumberResponse, data: num });
+
+      const sel = Buffer.from(
+        api.ListEntitiesSelectResponse.encode(
+          api.ListEntitiesSelectResponse.create({ key: 32, name: 'Mode', objectId: 'mode' }),
+        ).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.ListEntitiesSelectResponse, data: sel });
+
+      const btn = Buffer.from(
+        api.ListEntitiesButtonResponse.encode(
+          api.ListEntitiesButtonResponse.create({ key: 33, name: 'Reboot', objectId: 'reboot' }),
+        ).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.ListEntitiesButtonResponse, data: btn });
+
+      mockConnection.emit('message', { type: MessageType.ListEntitiesDoneResponse, data: Buffer.alloc(0) });
+
+      const entities = await promise;
+      expect(entities.find((e: any) => e.key === 31)).toBeDefined();
+      expect(entities.find((e: any) => e.key === 32)).toBeDefined();
+      expect(entities.find((e: any) => e.key === 33)).toBeDefined();
     });
   });
 
@@ -577,6 +650,39 @@ describe('ESPHomeClient', () => {
       });
 
       await expect(client.switchCommand(1, true)).rejects.toThrow('Send failed');
+    });
+
+    it('should send number command', async () => {
+      const sendMessageSpy = jest.spyOn(mockConnection, 'sendMessage');
+
+      await client.numberCommand(100, 42);
+
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        MessageType.NumberCommandRequest,
+        expect.any(Buffer),
+      );
+    });
+
+    it('should send select command', async () => {
+      const sendMessageSpy = jest.spyOn(mockConnection, 'sendMessage');
+
+      await client.selectCommand(101, 'Option B');
+
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        MessageType.SelectCommandRequest,
+        expect.any(Buffer),
+      );
+    });
+
+    it('should send button command', async () => {
+      const sendMessageSpy = jest.spyOn(mockConnection, 'sendMessage');
+
+      await client.buttonCommand(102);
+
+      expect(sendMessageSpy).toHaveBeenCalledWith(
+        MessageType.ButtonCommandRequest,
+        expect.any(Buffer),
+      );
     });
   });
 
