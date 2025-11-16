@@ -5,7 +5,7 @@
 [![CI](https://github.com/LRuesink-WebArray/esphome-native-api/actions/workflows/ci.yml/badge.svg)](https://github.com/LRuesink-WebArray/esphome-native-api/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/LRuesink-WebArray/esphome-native-api/branch/main/graph/badge.svg)](https://codecov.io/gh/LRuesink-WebArray/esphome-native-api)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
 
 A TypeScript/Node.js implementation of the ESPHome native API protocol. This library allows you to interact with ESPHome devices directly from Node.js applications.
@@ -631,8 +631,6 @@ This ensures automated proto updates (via GitHub Actions) won't cause linter fai
 See `proto/README.md` for more details.
 
 ## Auto-Generated Entity Types
-
-{{ ... }}
 
 ```typescript
 import { ALL_ENTITY_TYPES, isValidEntityType, EntityType } from '@webarray/esphome-native-api';
