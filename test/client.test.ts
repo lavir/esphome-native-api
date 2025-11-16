@@ -3,8 +3,9 @@
  */
 
 import { ESPHomeClient } from '../src/client/client';
-import { Connection } from '../src/connection/connection';
-import { MessageType } from '../src/types';
+import { EncryptedConnection } from '../src/connection/encrypted-connection';
+import { MessageType, EntityCategory } from '../src/types';
+import * as api from '../src/proto/api';
 import { EventEmitter } from 'eventemitter3';
 
 // Mock Connection
@@ -61,9 +62,9 @@ class MockConnection extends EventEmitter {
   }
 }
 
-// Mock the Connection module
-jest.mock('../src/connection/connection', () => ({
-  Connection: jest.fn(() => new MockConnection()),
+// Mock the EncryptedConnection module used by the client
+jest.mock('../src/connection/encrypted-connection', () => ({
+  EncryptedConnection: jest.fn(() => new MockConnection()),
 }));
 
 describe('ESPHomeClient', () => {
@@ -77,7 +78,128 @@ describe('ESPHomeClient', () => {
       port: 6053,
       password: 'testpass',
     });
-    mockConnection = (Connection as any).mock.results[0].value;
+    mockConnection = (EncryptedConnection as any).mock.results[0].value;
+  });
+
+  // Handshake flow is exercised implicitly via message handling and connect tests.
+
+  describe('subscriptions behavior', () => {
+    it('should call and then stop calling state subscription on unsubscribe', async () => {
+      const callback = jest.fn();
+      client.subscribeStates(callback);
+
+      const stateBuf = Buffer.from(
+        api.BinarySensorStateResponse.encode(
+          api.BinarySensorStateResponse.create({ key: 1, state: true }),
+        ).finish(),
+      );
+
+      mockConnection.emit('message', { type: MessageType.BinarySensorStateResponse, data: stateBuf });
+      await new Promise((r) => setImmediate(r));
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      client.unsubscribeStates(callback);
+      mockConnection.emit('message', { type: MessageType.BinarySensorStateResponse, data: stateBuf });
+      await new Promise((r) => setImmediate(r));
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call and then stop calling log subscription on unsubscribe', async () => {
+      const callback = jest.fn();
+      client.subscribeLogs(3, callback);
+
+      const logBuf = Buffer.from(
+        api.SubscribeLogsResponse.encode(
+          api.SubscribeLogsResponse.create({ level: 3, message: 'hi', sendFailed: false }),
+        ).finish(),
+      );
+
+      mockConnection.emit('message', { type: MessageType.SubscribeLogsResponse, data: logBuf });
+      await new Promise((r) => setImmediate(r));
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      client.unsubscribeLogs(callback);
+      mockConnection.emit('message', { type: MessageType.SubscribeLogsResponse, data: logBuf });
+      await new Promise((r) => setImmediate(r));
+      expect(callback).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('waitForMessage timeout', () => {
+    it('should reject when the expected message does not arrive in time', async () => {
+      await expect((client as any).waitForMessage(MessageType.ConnectResponse, 20)).rejects.toThrow(
+        'Timeout waiting for message type',
+      );
+    });
+  });
+
+  describe('state event handlers', () => {
+    it('should emit specific state events for light, fan, and cover', async () => {
+      const onState = jest.fn();
+      const onLight = jest.fn();
+      const onFan = jest.fn();
+      const onCover = jest.fn();
+      client.on('state', onState);
+      client.on('lightState', onLight);
+      client.on('fanState', onFan);
+      client.on('coverState', onCover);
+
+      // Light state
+      const lightBuf = Buffer.from(
+        api.LightStateResponse.encode(api.LightStateResponse.create({ key: 11, state: true })).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.LightStateResponse, data: lightBuf });
+
+      // Fan state
+      const fanBuf = Buffer.from(api.FanStateResponse.encode(api.FanStateResponse.create({ key: 12 })).finish());
+      mockConnection.emit('message', { type: MessageType.FanStateResponse, data: fanBuf });
+
+      // Cover state
+      const coverBuf = Buffer.from(
+        api.CoverStateResponse.encode(api.CoverStateResponse.create({ key: 13 })).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.CoverStateResponse, data: coverBuf });
+
+      await new Promise((r) => setImmediate(r));
+
+      // General state emitted at least 3 times
+      expect(onState).toHaveBeenCalled();
+      expect(onLight).toHaveBeenCalled();
+      expect(onFan).toHaveBeenCalled();
+      expect(onCover).toHaveBeenCalled();
+    });
+  });
+
+  describe('listEntities integration', () => {
+    it('should collect entities and resolve on ListEntitiesDoneResponse', async () => {
+      const sendSpy = jest.spyOn(mockConnection, 'sendMessage');
+
+      const promise = client.listEntities();
+
+      // Emit some entity responses
+      const e1 = Buffer.from(
+        api.ListEntitiesSensorResponse.encode(
+          api.ListEntitiesSensorResponse.create({ key: 21, name: 'Temp', objectId: 'temp' }),
+        ).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.ListEntitiesSensorResponse, data: e1 });
+
+      const e2 = Buffer.from(
+        api.ListEntitiesSwitchResponse.encode(
+          api.ListEntitiesSwitchResponse.create({ key: 22, name: 'Switch', objectId: 'sw' }),
+        ).finish(),
+      );
+      mockConnection.emit('message', { type: MessageType.ListEntitiesSwitchResponse, data: e2 });
+
+      // Done
+      mockConnection.emit('message', { type: MessageType.ListEntitiesDoneResponse, data: Buffer.alloc(0) });
+
+      const entities = await promise;
+      expect(sendSpy).toHaveBeenCalledWith(MessageType.ListEntitiesRequest, expect.any(Buffer));
+      expect(entities.length).toBeGreaterThanOrEqual(2);
+      expect(entities.find((e: any) => e.key === 21)).toBeDefined();
+      expect(entities.find((e: any) => e.key === 22)).toBeDefined();
+    });
   });
 
   afterEach(() => {
@@ -90,6 +212,67 @@ describe('ESPHomeClient', () => {
       expect(client).toBeDefined();
       expect(client.isConnected()).toBe(false);
       expect(client.isAuthenticated()).toBe(false);
+    });
+  });
+
+  describe('time request handling', () => {
+    it('should respond to GetTimeRequest with GetTimeResponse', () => {
+      const sendSpy = jest.spyOn(mockConnection, 'sendMessage');
+      // Simulate device sending GetTimeRequest
+      mockConnection.emit('message', { type: MessageType.GetTimeRequest, data: Buffer.alloc(0) });
+      expect(sendSpy).toHaveBeenCalledWith(MessageType.GetTimeResponse, expect.any(Buffer));
+    });
+  });
+
+  describe('entity helpers', () => {
+    it('should manage entities and support queries', () => {
+      const e1 = { key: 1, name: 'Temp Sensor', objectId: 'temp_sensor', entityCategory: EntityCategory.DIAGNOSTIC } as any;
+      const e2 = { key: 2, name: 'Kitchen Light', objectId: 'kitchen_light', entityCategory: EntityCategory.CONFIG } as any;
+
+      (client as any).entities.set(1, e1);
+      (client as any).entities.set(2, e2);
+
+      expect(client.getEntityCount()).toBe(2);
+      expect(client.getAllEntities()).toHaveLength(2);
+      expect(client.getEntityByKey(1)).toEqual(e1);
+      expect(client.getEntityInfo(2)).toEqual(e2);
+      expect(client.hasEntity(1)).toBe(true);
+      expect(client.hasEntity('kitchen')).toBe(true);
+      expect(client.findEntity('temp')).toEqual(e1);
+      expect(client.findEntities('light')).toHaveLength(1);
+      const cfg = client.getEntitiesByCategory(EntityCategory.CONFIG);
+      expect(cfg).toHaveLength(1);
+    });
+  });
+
+  describe('connection metrics and logging', () => {
+    it('should return connection metrics from underlying connection', () => {
+      (mockConnection as any).getState = jest.fn().mockReturnValue({ connected: true, authenticated: true });
+      (mockConnection as any).getHealthMetrics = jest.fn().mockReturnValue({
+        isConnected: true,
+        isAuthenticated: true,
+        reconnectCount: 0,
+        messagesSent: 1,
+        messagesReceived: 2,
+        bytesSent: 10,
+        bytesReceived: 20,
+      });
+
+      const metrics = client.getConnectionMetrics();
+      expect(metrics.state.connected).toBe(true);
+      expect(metrics.health.isConnected).toBe(true);
+      expect(metrics.entityCount).toBe(0);
+    });
+
+    it('should enable detailed logging', () => {
+      const prev = process.env['DEBUG'];
+      client.enableDetailedLogging();
+      expect(process.env['DEBUG']).toBe('esphome:*');
+      if (prev !== undefined) {
+        process.env['DEBUG'] = prev;
+      } else {
+        delete (process.env as any)['DEBUG'];
+      }
     });
   });
 

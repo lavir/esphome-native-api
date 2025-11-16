@@ -247,4 +247,4 @@ After trying the examples:
 
 ## Support
 
-For issues or questions, visit: https://github.com/lruesink/esphomeapi
+For issues or questions, visit: https://github.com/LRuesink-WebArray/esphome-native-api

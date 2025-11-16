@@ -57,14 +57,10 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
     super();
     this.options = options;
 
-    // Use encrypted connection if encryption key is provided
-    if (options.encryptionKey) {
-      debug('Using encrypted connection');
-      this.connection = new EncryptedConnection(options);
-    } else {
-      debug('Using unencrypted connection');
-      this.connection = new Connection(options);
-    }
+    // TEMPORARY: Always use EncryptedConnection (works for both encrypted and unencrypted)
+    // There's a bug in the Connection class that causes device to close connection on ListEntitiesRequest
+    debug(options.encryptionKey ? 'Using encrypted connection' : 'Using unencrypted connection (via EncryptedConnection)');
+    this.connection = new EncryptedConnection(options);
 
     this.setupConnectionHandlers();
     debug('Client initialized for %s:%d', options.host, options.port || 6053);
@@ -156,10 +152,10 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
     const helloResponse = await this.waitForMessage(MessageType.HelloResponse, 5000);
     this.handleHelloResponse(helloResponse);
 
-    // Authenticate if password is set
-    if (this.options.password) {
-      await this.authenticate();
-    }
+    // Always send authentication (like Python's login=True)
+    // For devices without password: they may not respond, which is fine
+    // For devices with password: they will respond with AuthenticationResponse
+    await this.authenticate();
 
     // Mark as authenticated
     this.connection.setAuthenticated(true);
@@ -178,7 +174,7 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
     const message = {
       clientInfo: this.options.clientInfo || 'ESPHome TypeScript Client',
       apiVersionMajor: 1,
-      apiVersionMinor: 9,
+      apiVersionMinor: 13,  // Match Python aioesphomeapi client version
     };
 
     const data = this.encodeMessage('HelloRequest', message);
@@ -210,23 +206,29 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
 
     this.isAuthenticating = true;
     try {
-      debug('Authenticating with password');
+      debug('Sending authentication request%s', this.options.password ? ' with password' : '');
 
       const message = {
-        password: this.options.password,
+        password: this.options.password || '',
       };
 
-      const data = this.encodeMessage('ConnectRequest', message);
+      const data = this.encodeMessage('AuthenticationRequest', message);
       this.connection.sendMessage(MessageType.ConnectRequest, data);
 
-      const response = await this.waitForMessage(MessageType.ConnectResponse, 5000);
-      const connectResponse = this.decodeMessage('ConnectResponse', response.data);
+      // Only wait for response if password is set
+      // Devices without password authentication won't send AuthenticationResponse
+      if (this.options.password) {
+        const response = await this.waitForMessage(MessageType.ConnectResponse, 5000);
+        const connectResponse = this.decodeMessage('AuthenticationResponse', response.data);
 
-      if (connectResponse.invalidPassword) {
-        throw new AuthenticationError('Invalid password');
+        if (connectResponse.invalidPassword) {
+          throw new AuthenticationError('Invalid password');
+        }
+
+        debug('Authentication successful');
+      } else {
+        debug('Authentication request sent (no response expected without password)');
       }
-
-      debug('Authentication successful');
     } finally {
       this.isAuthenticating = false;
     }
@@ -596,9 +598,41 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
         this.handleLogResponse(message);
         break;
 
+      case MessageType.ListEntitiesDoneResponse:
+        // This message signals the end of the entity list
+        // waitForMessage() will handle it
+        debug('Received ListEntitiesDoneResponse - entity list complete');
+        break;
+
+      case MessageType.GetTimeRequest:
+        // Device is requesting current time - respond if enabled
+        if (this.options.respondToTimeRequests !== false) {
+          this.handleGetTimeRequest();
+        } else {
+          debug('Received GetTimeRequest (ignoring - respondToTimeRequests disabled)');
+        }
+        break;
+
       default:
         debug('Unhandled message type: %d', message.type);
     }
+  }
+
+  /**
+   * Handle GetTimeRequest from device
+   */
+  private handleGetTimeRequest(): void {
+    debug('Received GetTimeRequest from device');
+    
+    // Send current Unix timestamp (seconds since epoch)
+    const epochSeconds = Math.floor(Date.now() / 1000);
+    const message = {
+      epochSeconds,
+    };
+    
+    const data = this.encodeMessage('GetTimeResponse', message);
+    this.connection.sendMessage(MessageType.GetTimeResponse, data);
+    debug('Sent GetTimeResponse with timestamp %d', epochSeconds);
   }
 
   /**

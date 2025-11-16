@@ -58,7 +58,7 @@ Device                          Client
 The library automatically detects and configures deep sleep support:
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({
   host: 'sleeping-sensor.local',
@@ -103,7 +103,7 @@ if (deviceInfo?.hasDeepSleep) {
 You can also manually configure deep sleep mode:
 
 ```typescript
-import { Connection } from 'esphome-native-api';
+import { Connection } from '@webarray/esphome-native-api';
 
 const connection = new Connection({
   host: 'device.local',
@@ -128,7 +128,7 @@ connection.on('disconnect', () => {
 ## Example: Battery-Powered Sensor
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({
   host: 'battery-sensor.local',

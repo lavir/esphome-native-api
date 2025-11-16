@@ -2,8 +2,8 @@
 
 [![npm version](https://img.shields.io/npm/v/@webarray/esphome-native-api.svg)](https://www.npmjs.com/package/@webarray/esphome-native-api)
 [![npm downloads](https://img.shields.io/npm/dm/@webarray/esphome-native-api.svg)](https://www.npmjs.com/package/@webarray/esphome-native-api)
-[![CI](https://github.com/lruesink/esphomeapi/actions/workflows/ci.yml/badge.svg)](https://github.com/lruesink/esphomeapi/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/lruesink/esphomeapi/branch/main/graph/badge.svg)](https://codecov.io/gh/lruesink/esphomeapi)
+[![CI](https://github.com/LRuesink-WebArray/esphome-native-api/actions/workflows/ci.yml/badge.svg)](https://github.com/LRuesink-WebArray/esphome-native-api/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/LRuesink-WebArray/esphome-native-api/branch/main/graph/badge.svg)](https://codecov.io/gh/LRuesink-WebArray/esphome-native-api)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue.svg)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
@@ -42,7 +42,7 @@ npm install @webarray/esphome-native-api
 ### Basic Usage
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 // Create a client and connect to an ESPHome device
 const client = new ESPHomeClient({
@@ -80,7 +80,7 @@ DEBUG=esphome:* node your-app.js
 ### Device Discovery
 
 ```typescript
-import { discover } from 'esphome-native-api';
+import { discover } from '@webarray/esphome-native-api';
 
 // Discover ESPHome devices on the network
 const devices = await discover(5000); // Search for 5 seconds
@@ -93,7 +93,7 @@ for (const device of devices) {
 ### Event-Based State Monitoring
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({
   host: 'device.local',
@@ -126,7 +126,7 @@ await client.connect();
 Subscribe to device logs using log level constants:
 
 ```typescript
-import { ESPHomeClient, LogLevel, LOG_LEVEL_INFO, LOG_LEVEL_DEBUG } from 'esphome-native-api';
+import { ESPHomeClient, LogLevel, LOG_LEVEL_INFO, LOG_LEVEL_DEBUG } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({ host: 'device.local' });
 
@@ -202,7 +202,7 @@ await client.connect();
 ### Advanced Discovery with Event Monitoring
 
 ```typescript
-import { Discovery } from 'esphome-native-api';
+import { Discovery } from '@webarray/esphome-native-api';
 
 const discovery = new Discovery();
 
@@ -246,12 +246,26 @@ interface ConnectionOptions {
   reconnect?: boolean;          // Enable auto-reconnection (default: true)
   reconnectInterval?: number;   // Reconnection interval in ms (default: 5000)
   pingInterval?: number;        // Ping interval in ms (default: 20000)
-  pingTimeout?: number;         // Ping timeout in ms (default: 5000)
+  pingTimeout?: number;         // Ping timeout in ms (default: 90000)
   connectTimeout?: number;      // Connection timeout in ms (default: 10000)
   expectedServerName?: string;  // Expected server name for additional security (optional)
+  respondToTimeRequests?: boolean; // Respond to GetTimeRequest from device (default: true)
   logger?: Logger;              // Custom logger function
   timerFactory?: TimerFactory;  // Custom timer implementation
 }
+```
+
+**Note on `respondToTimeRequests`:**
+
+By default, the client responds to `GetTimeRequest` messages from the device with the current system time. This is useful for devices that need to know the current time (e.g., for scheduling or logging). However, responding to these requests is **not required** for the connection to work properly.
+
+You may want to disable this if you don't want to affect the device's timekeeping.
+
+```typescript
+const client = new ESPHomeClient({
+  host: 'device.local',
+  respondToTimeRequests: false, // Don't respond to time requests
+});
 ```
 
 #### Events
@@ -343,7 +357,7 @@ import {
   ConnectionError,
   AuthenticationError,
   ProtocolError 
-} from 'esphome-native-api';
+} from '@webarray/esphome-native-api';
 
 try {
   await client.connect();
@@ -392,7 +406,7 @@ Available namespaces:
 For integration with custom logging systems (Winston, Pino, Bunyan, Homey, etc.), provide a custom logger function:
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({
   host: '192.168.1.100',
@@ -412,7 +426,7 @@ const client = new ESPHomeClient({
 To redirect all library logs to a custom logger:
 
 ```typescript
-import { setupGlobalLogger } from 'esphome-native-api';
+import { setupGlobalLogger } from '@webarray/esphome-native-api';
 
 setupGlobalLogger((message) => {
   myLogger.info(message);
@@ -423,7 +437,7 @@ setupGlobalLogger((message) => {
 
 ```typescript
 import winston from 'winston';
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const logger = winston.createLogger({
   transports: [new winston.transports.Console()]
@@ -444,7 +458,7 @@ See `examples/custom-logging-example.js` for more integration examples.
 Monitor connection health and performance metrics:
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({
   host: '192.168.1.100',
@@ -498,7 +512,7 @@ console.log('Total entities:', client.getEntityCount());
 Built-in debugging tools:
 
 ```typescript
-import { ESPHomeClient } from 'esphome-native-api';
+import { ESPHomeClient } from '@webarray/esphome-native-api';
 
 const client = new ESPHomeClient({
   host: '192.168.1.100',
@@ -525,7 +539,7 @@ import {
   ErrorCode,
   ConnectionError,
   AuthenticationError 
-} from 'esphome-native-api';
+} from '@webarray/esphome-native-api';
 
 try {
   await client.connect();
@@ -552,7 +566,7 @@ try {
 For environments that require custom timer handling (like Athom Homey), you can provide a `timerFactory`:
 
 ```typescript
-import { ESPHomeClient, TimerFactory } from 'esphome-native-api';
+import { ESPHomeClient, TimerFactory } from '@webarray/esphome-native-api';
 
 // Example: Homey timer factory
 const homeyTimers: TimerFactory = {
@@ -621,7 +635,7 @@ See `proto/README.md` for more details.
 {{ ... }}
 
 ```typescript
-import { ALL_ENTITY_TYPES, isValidEntityType, EntityType } from 'esphome-native-api';
+import { ALL_ENTITY_TYPES, isValidEntityType, EntityType } from '@webarray/esphome-native-api';
 
 // All entity types from proto files
 console.log(ALL_ENTITY_TYPES);
@@ -667,4 +681,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/yourusername/esphome-native-api).
+For issues, questions, or contributions, please visit the [GitHub repository](https://github.com/LRuesink-WebArray/esphome-native-api).

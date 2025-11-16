@@ -2,7 +2,7 @@
  * Tests for Protocol Handler
  */
 
-import { ProtocolHandler } from '../src/utils/protocol';
+import { ProtocolHandler, createPingRequest, createPingResponse } from '../src/utils/protocol';
 import { MessageType } from '../src/types';
 import varint from 'varint';
 
@@ -192,6 +192,20 @@ describe('ProtocolHandler', () => {
       handler.addData(partial);
 
       expect(handler.getBufferSize()).toBe(3);
+    });
+  });
+
+  describe('ping helpers', () => {
+    it('should create empty ping request buffer', () => {
+      const buf = createPingRequest();
+      expect(Buffer.isBuffer(buf)).toBe(true);
+      expect(buf.length).toBe(0);
+    });
+
+    it('should create empty ping response buffer', () => {
+      const buf = createPingResponse();
+      expect(Buffer.isBuffer(buf)).toBe(true);
+      expect(buf.length).toBe(0);
     });
   });
 });

@@ -242,7 +242,7 @@ Follow Semantic Versioning (SemVer):
 
 After publishing, create a GitHub release:
 
-1. Go to https://github.com/lruesink/esphomeapi/releases
+1. Go to https://github.com/LRuesink-WebArray/esphome-native-api/releases
 2. Click "Draft a new release"
 3. Tag: `v1.0.0` (matches npm version)
 4. Title: `v1.0.0 - Initial Release`
@@ -314,7 +314,7 @@ Then add `NPM_TOKEN` to your GitHub repository secrets.
 
 After publishing:
 
-1. Monitor GitHub issues: https://github.com/lruesink/esphomeapi/issues
+1. Monitor GitHub issues: https://github.com/LRuesink-WebArray/esphome-native-api/issues
 2. Check npm downloads: https://www.npmjs.com/package/@webarray/esphome-native-api
 3. Respond to questions and bug reports
 4. Keep dependencies updated

@@ -76,12 +76,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/lruesink/esphomeapi.git"
+    "url": "https://github.com/LRuesink-WebArray/esphome-native-api.git"
   },
   "bugs": {
-    "url": "https://github.com/lruesink/esphomeapi/issues"
+    "url": "https://github.com/LRuesink-WebArray/esphome-native-api/issues"
   },
-  "homepage": "https://github.com/lruesink/esphomeapi#readme",
+  "homepage": "https://github.com/LRuesink-WebArray/esphome-native-api#readme",
   "publishConfig": {
     "access": "public"
   }

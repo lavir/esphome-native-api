@@ -1,6 +1,7 @@
 /tmp
 /out-tsc
-
+temp_proto/
+ 
 /node_modules
 npm-debug.log*
 yarn-debug.log*
@@ -12,3 +13,6 @@ yarn-error.log*
 dist/*
 .idea/*
 .DS_Store
+
+# Test scripts (may contain encryption keys)
+test-*.js

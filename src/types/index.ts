@@ -32,6 +32,7 @@ export interface ConnectionOptions {
   connectTimeout?: number;
   encryptionKey?: string;
   expectedServerName?: string;
+  respondToTimeRequests?: boolean; // Whether to respond to GetTimeRequest from device (default: true)
   logger?: Logger; // Custom logger function (e.g., for Homey integration)
   timerFactory?: TimerFactory; // Custom timer implementation (e.g., for Homey integration)
 }

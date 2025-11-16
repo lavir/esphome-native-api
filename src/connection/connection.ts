@@ -73,10 +73,11 @@ export class Connection extends EventEmitter<ConnectionEvents> {
       reconnect: options.reconnect !== false,
       reconnectInterval: options.reconnectInterval || 5000,
       pingInterval: options.pingInterval || 20000,
-      pingTimeout: options.pingTimeout || 5000,
+      pingTimeout: options.pingTimeout || 90000,  // Match Python's 4.5x ratio (90s)
       connectTimeout: options.connectTimeout || 10000,
       encryptionKey: options.encryptionKey || '',
       expectedServerName: options.expectedServerName || '',
+      respondToTimeRequests: options.respondToTimeRequests !== false, // Default to true
       logger: options.logger,
       timerFactory: options.timerFactory,
     };
