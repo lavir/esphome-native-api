@@ -14,6 +14,7 @@ import {
   DeviceInfo,
   EntityInfo,
   EntityCategory,
+  EntityDomain,
   StateUpdate,
   BinarySensorState,
   SensorState,
@@ -354,12 +355,20 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
    * @param type - Entity type filter (e.g., 'sensor', 'binary_sensor', 'switch')
    * @returns Array of entities matching the type
    */
-  getEntitiesByType(type: string): EntityInfo[] {
+  getEntitiesByType(type: EntityDomain | string): EntityInfo[] {
     const entities = Array.from(this.entities.values());
     return entities.filter((entity: any) => {
-      // Match by constructor name or inferred type
+      // Prefer explicit type field when available
+      if (entity.type) {
+        if (typeof type === 'string') {
+          return entity.type === type;
+        }
+        return entity.type === type;
+      }
+
+      // Fallback: match by constructor name or inferred type
       const constructorName = entity.constructor?.name?.toLowerCase() || '';
-      return constructorName.includes(type.toLowerCase().replace('_', ''));
+      return constructorName.includes(String(type).toLowerCase().replace('_', ''));
     });
   }
 
@@ -690,44 +699,60 @@ export class ESPHomeClient extends EventEmitter<ClientEvents> {
    */
   private handleEntityResponse(message: DecodedMessage): void {
     let entity: EntityInfo | null = null;
+    let entityType: EntityDomain | null = null;
 
     switch (message.type) {
       case MessageType.ListEntitiesBinarySensorResponse:
         entity = this.decodeMessage('ListEntitiesBinarySensorResponse', message.data);
+        entityType = EntityDomain.BINARY_SENSOR;
         break;
       case MessageType.ListEntitiesSensorResponse:
         entity = this.decodeMessage('ListEntitiesSensorResponse', message.data);
+        entityType = EntityDomain.SENSOR;
         break;
       case MessageType.ListEntitiesSwitchResponse:
         entity = this.decodeMessage('ListEntitiesSwitchResponse', message.data);
+        entityType = EntityDomain.SWITCH;
         break;
       case MessageType.ListEntitiesLightResponse:
         entity = this.decodeMessage('ListEntitiesLightResponse', message.data);
+        entityType = EntityDomain.LIGHT;
         break;
       case MessageType.ListEntitiesTextSensorResponse:
         entity = this.decodeMessage('ListEntitiesTextSensorResponse', message.data);
+        entityType = EntityDomain.TEXT_SENSOR;
         break;
       case MessageType.ListEntitiesFanResponse:
         entity = this.decodeMessage('ListEntitiesFanResponse', message.data);
+        entityType = EntityDomain.FAN;
         break;
       case MessageType.ListEntitiesCoverResponse:
         entity = this.decodeMessage('ListEntitiesCoverResponse', message.data);
+        entityType = EntityDomain.COVER;
         break;
       case MessageType.ListEntitiesNumberResponse:
         entity = this.decodeMessage('ListEntitiesNumberResponse', message.data);
+        entityType = EntityDomain.NUMBER;
         break;
       case MessageType.ListEntitiesSelectResponse:
         entity = this.decodeMessage('ListEntitiesSelectResponse', message.data);
+        entityType = EntityDomain.SELECT;
         break;
       case MessageType.ListEntitiesButtonResponse:
         entity = this.decodeMessage('ListEntitiesButtonResponse', message.data);
+        entityType = EntityDomain.BUTTON;
         break;
     }
 
     if (entity && entity.key !== undefined) {
-      this.entities.set(entity.key, entity);
-      this.emit('entity', entity);
-      debug('Entity registered: %o', entity);
+      const entityWithType: EntityInfo = {
+        ...(entity as any),
+        type: (entity as any).type ?? entityType!,
+      };
+
+      this.entities.set(entityWithType.key, entityWithType);
+      this.emit('entity', entityWithType);
+      debug('Entity registered: %o', entityWithType);
     }
   }
 

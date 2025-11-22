@@ -55,10 +55,37 @@ export interface DeviceInfo {
   suggestedArea?: string;
 }
 
+export enum EntityDomain {
+  BINARY_SENSOR = 'binary_sensor',
+  COVER = 'cover',
+  FAN = 'fan',
+  LIGHT = 'light',
+  SENSOR = 'sensor',
+  SWITCH = 'switch',
+  TEXT_SENSOR = 'text_sensor',
+  CAMERA = 'camera',
+  CLIMATE = 'climate',
+  NUMBER = 'number',
+  SELECT = 'select',
+  SIREN = 'siren',
+  LOCK = 'lock',
+  BUTTON = 'button',
+  MEDIA_PLAYER = 'media_player',
+  ALARM_CONTROL_PANEL = 'alarm_control_panel',
+  TEXT = 'text',
+  DATE = 'date',
+  TIME = 'time',
+  EVENT = 'event',
+  VALVE = 'valve',
+  DATETIME = 'datetime',
+  UPDATE = 'update',
+}
+
 export interface EntityInfo {
   objectId: string;
   key: number;
   name: string;
+  type: EntityDomain;
   uniqueId?: string;
   disabled?: boolean;
   icon?: string;
