@@ -65,6 +65,7 @@ export enum EntityDomain {
   TEXT_SENSOR = 'text_sensor',
   CAMERA = 'camera',
   CLIMATE = 'climate',
+  WATER_HEATER = 'water_heater',
   NUMBER = 'number',
   SELECT = 'select',
   SIREN = 'siren',
@@ -389,6 +390,8 @@ export enum MessageType {
   ListEntitiesUpdateResponse = 115,
   UpdateStateResponse = 116,
   UpdateCommandRequest = 117,
+  WaterHeaterStateResponse = 118,
+  WaterHeaterCommandRequest = 119,
 }
 
 export enum ErrorCode {

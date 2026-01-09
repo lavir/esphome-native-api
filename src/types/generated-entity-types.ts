@@ -33,6 +33,7 @@ export type EntityType =
   | 'text_sensor'
   | 'camera'
   | 'climate'
+  | 'water_heater'
   | 'number'
   | 'select'
   | 'siren'
@@ -62,6 +63,7 @@ export interface EntityTypeMap {
   text_sensor: EntityInfo;
   camera: EntityInfo;
   climate: EntityInfo;
+  water_heater: EntityInfo;
   number: EntityInfo;
   select: EntityInfo;
   siren: EntityInfo;
@@ -92,6 +94,7 @@ export interface EntityStateMap {
   text_sensor: TextSensorState;
   camera: StateUpdate;
   climate: StateUpdate;
+  water_heater: StateUpdate;
   number: StateUpdate;
   select: StateUpdate;
   siren: StateUpdate;
@@ -139,6 +142,7 @@ export type AnyEntity =
   | EntityWithType<'text_sensor'>
   | EntityWithType<'camera'>
   | EntityWithType<'climate'>
+  | EntityWithType<'water_heater'>
   | EntityWithType<'number'>
   | EntityWithType<'select'>
   | EntityWithType<'siren'>
@@ -168,6 +172,7 @@ export const ALL_ENTITY_TYPES: readonly EntityType[] = [
   'text_sensor',
   'camera',
   'climate',
+  'water_heater',
   'number',
   'select',
   'siren',
