@@ -282,6 +282,9 @@ describe('EncryptedConnection', () => {
 
       (conn as any).handleDisconnect();
       expect(spy).toHaveBeenCalled();
+      
+      // Clean up the reconnect timer to prevent open handle warning
+      conn.destroy();
     });
 
     it('should send ping on interval and disconnect on timeout when no pong', () => {
